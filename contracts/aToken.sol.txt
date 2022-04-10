@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: MIT;
+
+pragma solidity ^0.8.4;
+
+contract aToken{
+    //create a mapping of balances of address [key] to numberofTokens[value]
+    mapping(address => uint256) public balances;
+    address payable wallet; //the wallet should be the address and should be payable
+
+    constructor(address payable _wallet){
+        //set the wallet to address before you run the smart contract
+        wallet = _wallet;
+    }
+
+    event Log(string func, address sender, uint value);
+
+    fallback() external payable{
+        buyToken();
+    }
+
+    receive() external payable{
+        emit Log("receive", msg.sender, msg.value);
+    }
+
+    function buyToken() public payable {
+        //any time the buy token fn is called, add the value required to the wallet balance
+        balances[msg.sender] += 1;
+
+        //actually transfer Ether to the wallet
+        wallet.transfer(msg.value);
+    }
+
+
+
+}
