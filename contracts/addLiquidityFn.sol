@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
 
-
 pragma solidity ^0.8.0;
 
 /**
@@ -325,9 +324,10 @@ pragma solidity ^0.8.0;
 
 contract liquidityTesting{
 
-    address uniswapV2Pair;
-    IUniswapV2Router02 internal uniswapV2Router;
-    mapping(address => mapping(address => uint256)) private _allowances;
+    IUniswapV2Router02 public uniswapV2Router;
+
+    address _tokenA = 0x118A4b1541836393662b8F87dB23C0F8B0291a70; // SI
+    address toAddress = 0xDBD06E7690F2c575129abD5552DaEB0055367305;
 
     /**
      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
@@ -336,55 +336,47 @@ contract liquidityTesting{
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
     event showMe(uint amA, uint amB, uint liq);
+    event pairCreated(address tokenA, address tokenB, address pairAddress);
+    event tokenApprovedFinally(address theToken, address theRouter, uint theAmount);
 
 
     //this logic works.
     constructor(){
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-
-        // Create a uniswap pair for this new token
-        // uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
-        //     .createPair(address(0x118A4b1541836393662b8F87dB23C0F8B0291a70), _uniswapV2Router.WETH());
-
-        // set the rest of the contract variables
         uniswapV2Router = _uniswapV2Router;
+
     }
 
-    // function _approve(
-    //     address owner,
-    //     address spender,
-    //     uint256 amount
-    // ) private {
-    //     require(owner != address(0), "ERC20: approve from the zero address");
-    //     require(spender != address(0), "ERC20: approve to the zero address");
+    event fundsReceived(address sender, uint amount);
 
-    //             //the token address                                     //the UniSwap V2 Router address
-    //     IERC20(0x118A4b1541836393662b8F87dB23C0F8B0291a70).approve(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D, amount);
+    receive()external payable {
+        emit fundsReceived(msg.sender, msg.value);
+    }
 
-    //     _allowances[owner][spender] = amount;
-    //     emit Approval(owner, spender, amount);
-    // }
+    function ensureApproval() public {
+        uint entireBalance = IERC20(_tokenA).balanceOf(address(this));
+
+        // the token is being approved for the contract
+        IERC20(_tokenA).approve(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D, entireBalance);
+
+        emit tokenApprovedFinally(_tokenA, address(uniswapV2Router), entireBalance);
+    }
 
     function addLiquidity(uint256 tokenAmount) public payable {
-        // approve token transfer to cover all possible scenarios
-                            //my wallet address
-        // _approve(address(0xDBD06E7690F2c575129abD5552DaEB0055367305), address(uniswapV2Router), tokenAmount);
-
-        address _tokenA = 0x118A4b1541836393662b8F87dB23C0F8B0291a70;
-        address _UniRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-        address toAddress = 0xDBD06E7690F2c575129abD5552DaEB0055367305;
-        IERC20(_tokenA).approve(_UniRouter, tokenAmount);
-
+        
+        uint ethAmount = msg.value;
 
         // add the liquidity
-        uniswapV2Router.addLiquidityETH{value: msg.value}(
-                    //the token address 
-            address(0x118A4b1541836393662b8F87dB23C0F8B0291a70),
+        (uint tokenA, uint amountB, uint liq) =
+        uniswapV2Router.addLiquidityETH{value: ethAmount}(
+            _tokenA,
             tokenAmount,
-            1, // slippage is unavoidable
-            1, // slippage is unavoidable
+            tokenAmount,
+            ethAmount,
             toAddress,
-            (block.timestamp + 1200)
+            (block.timestamp + 300)
         );
+
+        emit showMe(tokenA, amountB, liq);
     }
 }
